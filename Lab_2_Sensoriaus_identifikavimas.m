@@ -1,64 +1,53 @@
-clear all, close all
-% Load data to MATLAB
-load duomenys_ANN_mokymui.txt
+clear, close all
 
+load duomenys_ANN_mokymui.txt % Load data to MATLAB
 
 neuron_cnt = [1 2 3 4 5 6 7 8 9 10 20 30 50 70 100];
 koef = 0.1:0.1:0.9; % coeeficent of what percentage is used for test data
 finalExcelData = zeros(length(neuron_cnt), length(koef));
 finalInd = 1;
-reapeat_Cnt = 5;
+reapeat_Cnt = 5; %to get average
 errorSum = 0;
 
 for koefLocal = koef
     Output = ['Now using ', num2str(koefLocal),' coeficent'] ;
     disp(Output);
-    % Suskirstome i mokymo ir testavimo
-    % Divide data training and testing
-    ind=randperm(size(duomenys_ANN_mokymui,1)); %Gives index in random order !!!!!CAN CHANGE SEED
+    % Divide data into training and testing
+    ind=randperm(size(duomenys_ANN_mokymui,1)); %Gives index in random order
     dalinam=round(size(duomenys_ANN_mokymui,1)*koefLocal); %we change porporsion of train and test data 
-    TESTdata=duomenys_ANN_mokymui(ind(1:dalinam),:); %nuo pirmo iki dalinam indekso
+    TESTdata=duomenys_ANN_mokymui(ind(1:dalinam),:);
     TRAINdata=duomenys_ANN_mokymui(ind(dalinam+1:end),:);
 
-    % Paskirstome  iejimus (IN) ir isejimus (OUT)
-    INdataTEST=TESTdata(:,2:3)'; %iejimas i neuronini tinkla
+    % Divide  input (IN) and output (OUT) data
+    INdataTEST=TESTdata(:,2:3)'; %input to neuron net
     OUTdataTEST=TESTdata(:,4)';
     INdataTRAIN=TRAINdata(:,2:3)';
     OUTdataTRAIN=TRAINdata(:,4)';
 
-    for neuron_ind = 1: length(neuron_cnt) %make another for inside this
+    for neuron_ind = 1: length(neuron_cnt)  % we change number of neurons
         errorSum = 0;
         for ii = 1:reapeat_Cnt
-        % Treniruojam jutikl? uzduodami pasl?pt? neuron? skai?i? 
-        net = feedforwardnet(neuron_cnt(neuron_ind),'trainlm'); % we change number of neurons
-        net = train(net,INdataTRAIN,OUTdataTRAIN);
+            % Train our sensor with neuron net
+            net = feedforwardnet(neuron_cnt(neuron_ind),'trainlm');
+            net = train(net,INdataTRAIN,OUTdataTRAIN);  
 
-        % Testuojame su testavimo imtimi t.y. niekada nematyta
-        y = net(INdataTEST);  %cia irgi
+            y = net(INdataTEST);  %Testing with data never seen by net
 
-        % Suskai?iuojam absoliutin? sumin? paklaid?
-        paklaida=sum(abs(OUTdataTEST-y));
-        errorSum = errorSum + paklaida;
-        end
-        
-        finalExcelData(finalInd) = (errorSum/reapeat_Cnt)/dalinam;
+            paklaida=sum(abs(OUTdataTEST-y));     %Calculate absolute offset
+            errorSum = errorSum + paklaida;
+        end        
+        finalExcelData(finalInd) = (errorSum/reapeat_Cnt)/dalinam; %relative offset, it's absolute offset devided
+        ...by number of testing points
         finalInd = finalInd + 1;
     end 
-
- %finalExcel(%indFinal) = paklaidosVid; indFinal++;
 end
-% Atbr?ziam grafik? programinio jutiklio ir tikr? matavim? viename langa 
+
+%Draw graph with software made sensors' data and real measurments in same window
 figure(1)
-plot(y,'-*'),hold on, % Islaikome grafik?, nes norime ant to paties lango br?zti kit?
-plot(OUTdataTEST,'-*r'),grid	% Br?ziam tikrus matavimus ir uzdedam tinklel?
-legend('Jutiklio parodymai','Tikri duomenys') % priskiriame grafik? pavadinimus
+plot(y,'-*'), hold on,
+plot(OUTdataTEST,'-*r'),grid
+legend('Jutiklio parodymai','Tikri duomenys')
 
 figure(3)
 [X,Y] = meshgrid(koef,neuron_cnt);
-surf(X,Y,finalExcelData)
-
-
-
-%PABAIGOJE
-%csvwrite(0 <file name>0 , A) Writes out the elements of a matrix to the named file using the
-%same format as csvread
+surf(X,Y,finalExcelData) %to show data in 3D
